@@ -22,7 +22,9 @@ class WebInspector:
         # Configure headers
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept-Language": "en-US,en;q=0.5"
+            "Accept-Language": "en-US,en;q=0.5",
+            "X-Scanner": "SecurityAudit/1.0",  # Ethical header
+            "Safe-Mode": "true"  # Fake header to avoid WAF triggers
         }
 
     def _log(self, message: str):
